@@ -1,0 +1,39 @@
+[
+  {
+    "awardName": "マンガ大賞",
+    "entries": [
+      { "year": 2024, "category": "大賞", "title": "君と宇宙を歩くために", "aniListId": 166342 },
+      { "year": 2023, "category": "大賞", "title": "これ描いて死ね", "aniListId": 143087 },
+      { "year": 2022, "category": "大賞", "title": "ダーウィン事変", "aniListId": 113399 },
+      { "year": 2021, "category": "大賞", "title": "葬送のフリーレン", "aniListId": 127230 },
+      { "year": 2020, "category": "大賞", "title": "ブルーピリオド", "aniListId": 101947 },
+      { "year": 2019, "category": "大賞", "title": "彼方のアストラ", "aniListId": 87499 },
+      { "year": 2018, "category": "大賞", "title": "BEASTARS", "aniListId": 98699 }
+    ]
+  },
+  {
+    "awardName": "このマンガがすごい!",
+    "entries": [
+      { "year": 2025, "category": "オトコ編 1位", "title": "君と宇宙を歩くために", "aniListId": 166342 },
+      { "year": 2025, "category": "オンナ編 1位", "title": "環と周", "aniListId": 166800 },
+      { "year": 2024, "category": "オトコ編 1位", "title": "ダイヤモンドの功罪", "aniListId": 164272 },
+      { "year": 2024, "category": "オンナ編 1位", "title": "うみべのストーブ", "aniListId": 169740 },
+      { "year": 2023, "category": "オトコ編 1位", "title": "光が死んだ夏", "aniListId": 138812 },
+      { "year": 2023, "category": "オンナ編 1位", "title": "天幕のジャードゥーガル", "aniListId": 146730 },
+      { "year": 2022, "category": "オトコ編 1位", "title": "ルックバック", "aniListId": 138673 },
+      { "year": 2022, "category": "オンナ編 1位", "title": "海が走るエンドロール", "aniListId": 137910 }
+    ]
+  },
+  {
+    "awardName": "手塚治虫文化賞",
+    "entries": [
+      { "year": 2024, "category": "マンガ大賞", "title": "ダーウィン事変", "aniListId": 113399 },
+      { "year": 2023, "category": "マンガ大賞", "title": "チ。-地球の運動について-", "aniListId": 116742 },
+      { "year": 2022, "category": "マンガ大賞", "title": "チ。-地球の運動について-", "aniListId": 116742 },
+      { "year": 2021, "category": "マンガ大賞", "title": "ランド", "aniListId": 104454 },
+      { "year": 2020, "category": "マンガ大賞", "title": "ゴールデンカムイ", "aniListId": 86643 },
+      { "year": 2019, "category": "マンガ大賞", "title": "その女、ジルバ", "aniListId": 102481 },
+      { "year": 2018, "category": "マンガ大賞", "title": "ゴールデンカムイ", "aniListId": 86643 }
+    ]
+  }
+]

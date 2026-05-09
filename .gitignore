@@ -1,0 +1,16 @@
+*.iml
+.gradle
+build/
+.idea/
+local.properties
+.omc/
+*.apk
+*.aab
+*.ipa
+*.xcarchive
+*.DS_Store
+iosApp/build/
+iosApp/MangaNavi.xcodeproj/
+composeApp/build/
+output/ios-screenshots/iphone_65/
+output/ios-screenshots/ipad_129/
