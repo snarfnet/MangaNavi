@@ -27,7 +27,7 @@ jobs:
         distribution: 'temurin'
 
     - name: Build iOS Framework
-      run: ./gradlew :composeApp:assembleComposeAppXCFramework -x test
+      run: ./gradlew :composeApp:assembleComposeAppReleaseXCFramework -x test || ./gradlew :composeApp:assembleReleaseXCFramework -x test || ./gradlew :composeApp:linkReleaseFrameworkIosArm64 -x test
 
     - name: Install XcodeGen
       run: brew install xcodegen
@@ -38,6 +38,25 @@ jobs:
         echo "BUILD_NUM=$BUILD_NUM" >> $GITHUB_ENV
         sed -i "" "s/CURRENT_PROJECT_VERSION: [0-9]*/CURRENT_PROJECT_VERSION: $BUILD_NUM/" iosApp/project.yml
         sed -i "" "/<key>CFBundleVersion<\/key>/{n;s|<string>[^<]*</string>|<string>$BUILD_NUM</string>|;}" iosApp/iosApp/Info.plist
+
+    - name: Locate framework
+      run: |
+        # Find the built framework
+        FRAMEWORK_PATH=$(find composeApp/build -name "ComposeApp.xcframework" -type d 2>/dev/null | head -1)
+        if [ -z "$FRAMEWORK_PATH" ]; then
+          FRAMEWORK_PATH=$(find composeApp/build -name "ComposeApp.framework" -type d 2>/dev/null | head -1)
+        fi
+        echo "Framework: $FRAMEWORK_PATH"
+        echo "FRAMEWORK_PATH=$FRAMEWORK_PATH" >> $GITHUB_ENV
+
+    - name: Update project.yml framework path
+      run: |
+        if [ -n "$FRAMEWORK_PATH" ]; then
+          # Use absolute path
+          ABS_PATH="$(pwd)/$FRAMEWORK_PATH"
+          sed -i "" "s|framework:.*ComposeApp.*|framework: $ABS_PATH|" iosApp/project.yml
+        fi
+        cat iosApp/project.yml
 
     - name: Generate Xcode project
       run: cd iosApp && xcodegen generate
