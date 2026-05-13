@@ -207,22 +207,25 @@ def create_submission() -> str:
     return must(response, "Review submission creation failed.")["data"]["id"]
 
 
-def delete_submission_items(submission_id: str) -> bool:
+def delete_submission_items(submission_id: str) -> str:
     response = request("GET", f"/reviewSubmissions/{submission_id}/items")
     if response.status_code >= 400:
-        return False
+        return "failed"
 
     items = json_data(response).get("data", [])
     if not items:
-        return False
+        return "empty"
 
     for item in items:
         item_id = item["id"]
         delete_response = request("DELETE", f"/reviewSubmissionItems/{item_id}")
         if delete_response.status_code >= 400:
-            return False
+            if "Item was already submitted" in delete_response.text:
+                print(f"Review submission item {item_id} was already submitted.")
+                return "submitted"
+            return "failed"
         print(f"Removed old review submission item {item_id}.")
-    return True
+    return "deleted"
 
 
 def add_submission_item(submission_id: str, version_id: str) -> str:
@@ -243,7 +246,11 @@ def add_submission_item(submission_id: str, version_id: str) -> str:
         if match:
             existing_id = match.group(1)
             print(f"App version is already attached to review submission {existing_id}.")
-            if delete_submission_items(existing_id):
+            delete_state = delete_submission_items(existing_id)
+            if delete_state == "submitted":
+                print("The app version is already submitted for review.")
+                sys.exit(0)
+            if delete_state == "deleted":
                 retry = request("POST", "/reviewSubmissionItems", json=payload)
                 if retry.status_code in {200, 201}:
                     return submission_id
