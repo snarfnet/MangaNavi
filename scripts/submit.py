@@ -207,6 +207,24 @@ def create_submission() -> str:
     return must(response, "Review submission creation failed.")["data"]["id"]
 
 
+def delete_submission_items(submission_id: str) -> bool:
+    response = request("GET", f"/reviewSubmissions/{submission_id}/items")
+    if response.status_code >= 400:
+        return False
+
+    items = json_data(response).get("data", [])
+    if not items:
+        return False
+
+    for item in items:
+        item_id = item["id"]
+        delete_response = request("DELETE", f"/reviewSubmissionItems/{item_id}")
+        if delete_response.status_code >= 400:
+            return False
+        print(f"Removed old review submission item {item_id}.")
+    return True
+
+
 def add_submission_item(submission_id: str, version_id: str) -> str:
     payload = {
         "data": {
@@ -225,6 +243,10 @@ def add_submission_item(submission_id: str, version_id: str) -> str:
         if match:
             existing_id = match.group(1)
             print(f"App version is already attached to review submission {existing_id}.")
+            if delete_submission_items(existing_id):
+                retry = request("POST", "/reviewSubmissionItems", json=payload)
+                if retry.status_code in {200, 201}:
+                    return submission_id
             return existing_id
         return submission_id
     must(response, "Could not add the app version to the review submission.")
