@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 import time
 from typing import Any
@@ -206,7 +207,7 @@ def create_submission() -> str:
     return must(response, "Review submission creation failed.")["data"]["id"]
 
 
-def add_submission_item(submission_id: str, version_id: str) -> None:
+def add_submission_item(submission_id: str, version_id: str) -> str:
     payload = {
         "data": {
             "type": "reviewSubmissionItems",
@@ -217,9 +218,17 @@ def add_submission_item(submission_id: str, version_id: str) -> None:
         }
     }
     response = request("POST", "/reviewSubmissionItems", json=payload)
-    if response.status_code in {200, 201, 409}:
-        return
+    if response.status_code in {200, 201}:
+        return submission_id
+    if response.status_code == 409:
+        match = re.search(r"another reviewSubmission with id ([0-9a-f-]+)", response.text)
+        if match:
+            existing_id = match.group(1)
+            print(f"App version is already attached to review submission {existing_id}.")
+            return existing_id
+        return submission_id
     must(response, "Could not add the app version to the review submission.")
+    return submission_id
 
 
 def submit(submission_id: str) -> None:
@@ -261,7 +270,7 @@ def main() -> None:
     update_localization(version_id)
     submission_id = create_submission()
     print(f"Using review submission {submission_id}")
-    add_submission_item(submission_id, version_id)
+    submission_id = add_submission_item(submission_id, version_id)
     submit(submission_id)
 
 
