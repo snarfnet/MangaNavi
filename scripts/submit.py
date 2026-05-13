@@ -302,6 +302,24 @@ def submit(submission_id: str, version_id: str) -> None:
         time.sleep(30)
 
     print("Could not submit for review.")
+    submit_app_store_version(version_id)
+
+
+def submit_app_store_version(version_id: str) -> None:
+    payload = {
+        "data": {
+            "type": "appStoreVersionSubmissions",
+            "relationships": {
+                "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}},
+            },
+        }
+    }
+    response = request("POST", "/appStoreVersionSubmissions", json=payload)
+    if response.status_code in {200, 201}:
+        print("Submitted for App Store review with appStoreVersionSubmissions.")
+        return
+
+    print("Could not submit with appStoreVersionSubmissions either.")
     sys.exit(1)
 
 
