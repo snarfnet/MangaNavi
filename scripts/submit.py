@@ -77,17 +77,17 @@ def must(response: requests.Response, message: str) -> dict[str, Any]:
 
 
 def latest_build() -> dict[str, Any]:
-    query = (
-        f"/apps/{APP_ID}/builds"
-        "?limit=10"
-        f"&filter[preReleaseVersion.version]={VERSION_STRING}"
-        "&filter[processingState]=VALID,PROCESSING"
-    )
+    query = f"/apps/{APP_ID}/builds?limit=20"
     builds = must(request("GET", query), "Build lookup failed.").get("data", [])
     if BUILD_NUMBER:
         matching = [build for build in builds if build["attributes"].get("version") == BUILD_NUMBER]
         if matching:
             return matching[0]
+    builds = [
+        build
+        for build in builds
+        if build["attributes"].get("processingState") in {"VALID", "PROCESSING"}
+    ]
     if not builds:
         print("No valid or processing builds were found.")
         sys.exit(1)
