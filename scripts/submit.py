@@ -59,11 +59,11 @@ def request(method: str, path: str, **kwargs: Any) -> requests.Response:
     response = requests.request(method, f"{BASE_URL}{path}", headers=headers, timeout=60, **kwargs)
     if response.status_code >= 400:
         print(f"{method} {path} -> {response.status_code}")
-        print(response.text[:1200])
+        print(response.text[:1600])
     return response
 
 
-def json_data(response: requests.Response) -> dict[str, Any]:
+def body(response: requests.Response) -> dict[str, Any]:
     try:
         return response.json()
     except ValueError:
@@ -74,25 +74,24 @@ def must(response: requests.Response, message: str) -> dict[str, Any]:
     if response.status_code >= 400:
         print(message)
         sys.exit(1)
-    return json_data(response)
+    return body(response)
 
 
 def latest_build() -> dict[str, Any]:
-    query = f"/apps/{APP_ID}/builds?limit=20"
-    builds = must(request("GET", query), "Build lookup failed.").get("data", [])
+    builds = must(request("GET", f"/apps/{APP_ID}/builds?limit=20"), "Build lookup failed.").get("data", [])
     if BUILD_NUMBER:
-        matching = [build for build in builds if build["attributes"].get("version") == BUILD_NUMBER]
-        if matching:
-            return matching[0]
-    builds = [
-        build
-        for build in builds
+        for build in builds:
+            if build["attributes"].get("version") == BUILD_NUMBER:
+                return build
+
+    candidates = [
+        build for build in builds
         if build["attributes"].get("processingState") in {"VALID", "PROCESSING"}
     ]
-    if not builds:
+    if not candidates:
         print("No valid or processing builds were found.")
         sys.exit(1)
-    return sorted(builds, key=lambda build: build["attributes"].get("uploadedDate", ""), reverse=True)[0]
+    return sorted(candidates, key=lambda build: build["attributes"].get("uploadedDate", ""), reverse=True)[0]
 
 
 def wait_until_valid(build_id: str) -> None:
@@ -110,13 +109,13 @@ def wait_until_valid(build_id: str) -> None:
     sys.exit(1)
 
 
-def editable_version() -> str:
+def current_version() -> dict[str, Any]:
     states = "PREPARE_FOR_SUBMISSION,DEVELOPER_REJECTED,REJECTED,READY_FOR_REVIEW"
     path = f"/apps/{APP_ID}/appStoreVersions?limit=10&filter[platform]=IOS&filter[appStoreState]={states}"
     versions = must(request("GET", path), "Version lookup failed.").get("data", [])
     for version in versions:
         if version["attributes"].get("versionString") == VERSION_STRING:
-            return version["id"]
+            return version
 
     payload = {
         "data": {
@@ -125,8 +124,12 @@ def editable_version() -> str:
             "relationships": {"app": {"data": {"type": "apps", "id": APP_ID}}},
         }
     }
-    data = must(request("POST", "/appStoreVersions", json=payload), "Version creation failed.")
-    return data["data"]["id"]
+    return must(request("POST", "/appStoreVersions", json=payload), "Version creation failed.")["data"]
+
+
+def version_state(version_id: str) -> str:
+    data = must(request("GET", f"/appStoreVersions/{version_id}"), "Version state lookup failed.")
+    return data["data"]["attributes"].get("appStoreState", "")
 
 
 def assign_build(version_id: str, build_id: str) -> None:
@@ -143,7 +146,10 @@ def set_export_compliance(build_id: str) -> None:
             "attributes": {"usesNonExemptEncryption": False},
         }
     }
-    request("PATCH", f"/builds/{build_id}", json=payload)
+    response = request("PATCH", f"/builds/{build_id}", json=payload)
+    if response.status_code >= 400 and "already set" not in response.text:
+        print("Could not update export compliance.")
+        sys.exit(1)
 
 
 def update_localization(version_id: str) -> None:
@@ -176,11 +182,11 @@ def update_localization(version_id: str) -> None:
 
 
 def active_submission() -> str | None:
-    data = must(
+    submissions = must(
         request("GET", f"/apps/{APP_ID}/reviewSubmissions?limit=10"),
         "Review submission lookup failed.",
     ).get("data", [])
-    for submission in data:
+    for submission in submissions:
         state = submission["attributes"].get("state")
         if state in {"READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"}:
             return submission["id"]
@@ -207,27 +213,6 @@ def create_submission() -> str:
     return must(response, "Review submission creation failed.")["data"]["id"]
 
 
-def delete_submission_items(submission_id: str) -> str:
-    response = request("GET", f"/reviewSubmissions/{submission_id}/items")
-    if response.status_code >= 400:
-        return "failed"
-
-    items = json_data(response).get("data", [])
-    if not items:
-        return "empty"
-
-    for item in items:
-        item_id = item["id"]
-        delete_response = request("DELETE", f"/reviewSubmissionItems/{item_id}")
-        if delete_response.status_code >= 400:
-            if "Item was already submitted" in delete_response.text:
-                print(f"Review submission item {item_id} was already submitted.")
-                return "submitted"
-            return "failed"
-        print(f"Removed old review submission item {item_id}.")
-    return "deleted"
-
-
 def add_submission_item(submission_id: str, version_id: str) -> str:
     payload = {
         "data": {
@@ -241,26 +226,20 @@ def add_submission_item(submission_id: str, version_id: str) -> str:
     response = request("POST", "/reviewSubmissionItems", json=payload)
     if response.status_code in {200, 201}:
         return submission_id
+
     if response.status_code == 409:
         match = re.search(r"another reviewSubmission with id ([0-9a-f-]+)", response.text)
         if match:
-            existing_id = match.group(1)
-            print(f"App version is already attached to review submission {existing_id}.")
-            delete_state = delete_submission_items(existing_id)
-            if delete_state == "submitted":
-                print("The app version is already submitted for review.")
-                sys.exit(0)
-            if delete_state == "deleted":
-                retry = request("POST", "/reviewSubmissionItems", json=payload)
-                if retry.status_code in {200, 201}:
-                    return submission_id
-            return existing_id
-        return submission_id
+            old_id = match.group(1)
+            print(f"App version is still attached to old review submission {old_id}.")
+            print("This is not submitted yet. Remove that old item in App Store Connect and rerun.")
+            sys.exit(1)
+
     must(response, "Could not add the app version to the review submission.")
     return submission_id
 
 
-def submit(submission_id: str) -> None:
+def submit(submission_id: str, version_id: str) -> None:
     payload = {
         "data": {
             "type": "reviewSubmissions",
@@ -269,12 +248,17 @@ def submit(submission_id: str) -> None:
         }
     }
 
-    for attempt in range(1, 21):
+    for attempt in range(1, 31):
         response = request("PATCH", f"/reviewSubmissions/{submission_id}", json=payload)
         if response.status_code < 400:
             print("Submitted for App Store review.")
             return
-        print(f"Review submission is not ready yet ({attempt}/20).")
+
+        state = version_state(version_id)
+        print(f"Review submission is not ready yet ({attempt}/30). Version state: {state}")
+        if state in {"READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"}:
+            print("App Store Connect reports the version is now in review flow.")
+            return
         time.sleep(30)
 
     print("Could not submit for review.")
@@ -293,14 +277,15 @@ def main() -> None:
         wait_until_valid(build_id)
 
     set_export_compliance(build_id)
-    version_id = editable_version()
-    print(f"Using App Store version {VERSION_STRING} ({version_id})")
+    version = current_version()
+    version_id = version["id"]
+    print(f"Using App Store version {VERSION_STRING} ({version_id}), state: {version['attributes'].get('appStoreState')}")
     assign_build(version_id, build_id)
     update_localization(version_id)
     submission_id = create_submission()
     print(f"Using review submission {submission_id}")
     submission_id = add_submission_item(submission_id, version_id)
-    submit(submission_id)
+    submit(submission_id, version_id)
 
 
 if __name__ == "__main__":
