@@ -193,6 +193,33 @@ def active_submission() -> str | None:
     return None
 
 
+def submission_items(submission_id: str) -> list[dict[str, Any]]:
+    data = must(
+        request("GET", f"/reviewSubmissions/{submission_id}/items?include=appStoreVersion&limit=50"),
+        f"Review submission item lookup failed for {submission_id}.",
+    )
+    return data.get("data", [])
+
+
+def delete_stale_submission_item(submission_id: str, version_id: str) -> bool:
+    for item in submission_items(submission_id):
+        relationship = item.get("relationships", {}).get("appStoreVersion", {}).get("data")
+        if not relationship or relationship.get("id") != version_id:
+            continue
+
+        item_id = item["id"]
+        print(f"Removing stale review submission item {item_id} from {submission_id}.")
+        response = request("DELETE", f"/reviewSubmissionItems/{item_id}")
+        if response.status_code in {200, 202, 204}:
+            return True
+
+        print("Could not remove the stale review submission item.")
+        return False
+
+    print(f"No matching stale review submission item found in {submission_id}.")
+    return False
+
+
 def create_submission() -> str:
     existing = active_submission()
     if existing:
@@ -232,8 +259,15 @@ def add_submission_item(submission_id: str, version_id: str) -> str:
         if match:
             old_id = match.group(1)
             print(f"App version is still attached to old review submission {old_id}.")
-            print("This is not submitted yet. Remove that old item in App Store Connect and rerun.")
-            sys.exit(1)
+            if delete_stale_submission_item(old_id, version_id):
+                print("Retrying review submission item creation.")
+                retry = request("POST", "/reviewSubmissionItems", json=payload)
+                if retry.status_code in {200, 201}:
+                    return submission_id
+                response = retry
+            else:
+                print("Remove that old item in App Store Connect and rerun.")
+                sys.exit(1)
 
     must(response, "Could not add the app version to the review submission.")
     return submission_id
