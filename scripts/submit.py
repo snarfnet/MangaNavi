@@ -222,6 +222,23 @@ def delete_stale_submission_item(submission_id: str, version_id: str) -> str:
     return "missing"
 
 
+def delete_existing_version_submission(version_id: str) -> bool:
+    response = request("GET", f"/appStoreVersions/{version_id}/appStoreVersionSubmission")
+    if response.status_code == 404:
+        print("No existing appStoreVersionSubmission found.")
+        return False
+
+    data = must(response, "App Store version submission lookup failed.").get("data")
+    if not data:
+        print("No existing appStoreVersionSubmission found.")
+        return False
+
+    submission_id = data["id"]
+    print(f"Removing existing appStoreVersionSubmission {submission_id}.")
+    delete_response = request("DELETE", f"/appStoreVersionSubmissions/{submission_id}")
+    return delete_response.status_code in {200, 202, 204}
+
+
 def create_submission() -> str:
     existing = active_submission()
     if existing:
@@ -269,8 +286,15 @@ def add_submission_item(submission_id: str, version_id: str) -> str:
                     return submission_id
                 response = retry
             elif stale_result == "already_submitted":
-                print(f"Using already submitted review submission {old_id}.")
-                return old_id
+                if delete_existing_version_submission(version_id):
+                    print("Retrying review submission item creation after deleting appStoreVersionSubmission.")
+                    retry = request("POST", "/reviewSubmissionItems", json=payload)
+                    if retry.status_code in {200, 201}:
+                        return submission_id
+                    response = retry
+                else:
+                    print(f"Using already submitted review submission {old_id}.")
+                    return old_id
             else:
                 print("Remove that old item in App Store Connect and rerun.")
                 sys.exit(1)
