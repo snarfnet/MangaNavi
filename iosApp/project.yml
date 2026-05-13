@@ -17,8 +17,6 @@ targets:
       - path: iosApp
         excludes:
           - Info.plist
-    dependencies:
-      - framework: ../composeApp/build/XCFrameworks/release/ComposeApp.xcframework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mangaguide.manganavi
@@ -32,4 +30,4 @@ targets:
         INFOPLIST_FILE: iosApp/Info.plist
         DEVELOPMENT_TEAM: 83VGKGSQUH
         CODE_SIGN_STYLE: Automatic
-        OTHER_LDFLAGS: $(inherited) -ObjC -lc++
+        OTHER_LDFLAGS: $(inherited)
