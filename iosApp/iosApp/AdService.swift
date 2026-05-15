@@ -35,7 +35,7 @@ final class AdService: ObservableObject {
         didStart = true
 
         await requestTrackingAuthorizationIfNeeded()
-        await MobileAds.shared.start()
+        GADMobileAds.sharedInstance().start(completionHandler: nil)
         isReady = true
     }
 
@@ -60,34 +60,34 @@ struct AdMobBannerSlotView: View {
     var body: some View {
         if adService.isReady {
             BannerViewContainer(
-                adSize: AdSizeBanner,
+                adSize: GADAdSizeBanner,
                 adUnitID: AdConfiguration.bannerUnitID(for: placement)
             )
-            .frame(width: AdSizeBanner.size.width, height: AdSizeBanner.size.height)
+            .frame(width: GADAdSizeBanner.size.width, height: GADAdSizeBanner.size.height)
             .frame(maxWidth: .infinity)
             .padding(.top, 6)
-            .background(AppPalette.paper)
+            .background(Color(red: 0.96, green: 0.94, blue: 0.89))
             .accessibilityLabel("広告")
         }
     }
 }
 
 private struct BannerViewContainer: UIViewRepresentable {
-    let adSize: AdSize
+    let adSize: GADAdSize
     let adUnitID: String
 
-    func makeUIView(context: Context) -> BannerView {
-        let banner = BannerView(adSize: adSize)
+    func makeUIView(context: Context) -> GADBannerView {
+        let banner = GADBannerView(adSize: adSize)
         banner.adUnitID = adUnitID
         banner.rootViewController = UIApplication.shared.adRootViewController
-        banner.load(Request())
+        banner.load(GADRequest())
         return banner
     }
 
-    func updateUIView(_ banner: BannerView, context: Context) {
+    func updateUIView(_ banner: GADBannerView, context: Context) {
         if banner.adUnitID != adUnitID {
             banner.adUnitID = adUnitID
-            banner.load(Request())
+            banner.load(GADRequest())
         }
     }
 }
