@@ -36,6 +36,8 @@ DESC_JA = """MangaNaviは、次に読みたい漫画をすばやく見つける�
 
 KEYWORDS = "漫画,マンガ,おすすめ,ランキング,読書リスト,ジャンル,青年漫画,comic,manga,book"
 SUPPORT_URL = "https://snarfnet.github.io/"
+PRIVACY_URL = "https://snarfnet.github.io/privacy.html"
+COPYRIGHT = "2026 Tokyo Nasu"
 
 # Keep the storefront text plain Japanese. The earlier constants are overwritten
 # here because some terminals display the old source text as mojibake.
@@ -53,6 +55,16 @@ DESC_JA = """まとめ・よみきりは、次に読みたい漫画を探すた�
 漫画選びで迷ったとき、次の一冊を探す入口として使ってください。"""
 
 KEYWORDS = "漫画,マンガ,おすすめ,ランキング,読書リスト,ジャンル,読み切り,まとめ,comic,manga,book"
+REVIEW_DETAIL = {
+    "contactFirstName": "Tokyo",
+    "contactLastName": "Nasu",
+    "contactEmail": "tokyonasu@yahoo.co.jp",
+    "contactPhone": "+81 80-2368-9194",
+    "demoAccountRequired": False,
+    "demoAccountName": "",
+    "demoAccountPassword": "",
+    "notes": "No sign-in is required. The app is a simple manga reading-list and recommendation guide.",
+}
 
 
 def make_token() -> str:
@@ -155,6 +167,127 @@ def assign_build(version_id: str, build_id: str) -> None:
     must(response, "Could not attach the build to the App Store version.")
 
 
+def update_version_prerequisites(version_id: str) -> None:
+    app_payload = {
+        "data": {
+            "type": "apps",
+            "id": APP_ID,
+            "attributes": {"contentRightsDeclaration": "DOES_NOT_USE_THIRD_PARTY_CONTENT"},
+        }
+    }
+    response = request("PATCH", f"/apps/{APP_ID}", json=app_payload)
+    if response.status_code >= 400 and "already" not in response.text.lower():
+        print("Content rights update was not accepted.")
+
+    version_payload = {
+        "data": {
+            "type": "appStoreVersions",
+            "id": version_id,
+            "attributes": {"copyright": COPYRIGHT, "usesIdfa": False},
+        }
+    }
+    response = request("PATCH", f"/appStoreVersions/{version_id}", json=version_payload)
+    if response.status_code >= 400:
+        print("Version prerequisite update was not accepted.")
+
+    update_app_info()
+    update_review_detail(version_id)
+
+
+def update_app_info() -> None:
+    app_infos = must(request("GET", f"/apps/{APP_ID}/appInfos?limit=10"), "App info lookup failed.").get("data", [])
+    if not app_infos:
+        print("No app info found.")
+        return
+
+    app_info_id = app_infos[0]["id"]
+    category_payload = {
+        "data": {
+            "type": "appInfos",
+            "id": app_info_id,
+            "relationships": {"primaryCategory": {"data": {"type": "appCategories", "id": "BOOKS"}}},
+        }
+    }
+    response = request("PATCH", f"/appInfos/{app_info_id}", json=category_payload)
+    if response.status_code >= 400:
+        print("Category update was not accepted.")
+
+    locs = request("GET", f"/appInfos/{app_info_id}/appInfoLocalizations?limit=20")
+    if locs.status_code < 400:
+        for loc in body(locs).get("data", []):
+            attrs = {"privacyPolicyUrl": PRIVACY_URL}
+            if loc["attributes"].get("locale") in {"ja", "ja-JP"}:
+                attrs["subtitle"] = "次に読む漫画を探す"
+            payload = {"data": {"type": "appInfoLocalizations", "id": loc["id"], "attributes": attrs}}
+            response = request("PATCH", f"/appInfoLocalizations/{loc['id']}", json=payload)
+            if response.status_code >= 400:
+                print(f"App info localization update was not accepted for {loc['id']}.")
+
+    update_age_rating(app_info_id)
+
+
+def update_age_rating(app_info_id: str) -> None:
+    response = request("GET", f"/appInfos/{app_info_id}/ageRatingDeclaration")
+    if response.status_code >= 400:
+        print("Age rating lookup was not accepted.")
+        return
+
+    data = body(response).get("data")
+    if not data:
+        print("No age rating declaration found.")
+        return
+
+    attrs = {
+        "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+        "contests": "NONE",
+        "gambling": False,
+        "gamblingSimulated": "NONE",
+        "gunsOrOtherWeapons": "NONE",
+        "horrorOrFearThemes": "NONE",
+        "matureOrSuggestiveThemes": "NONE",
+        "medicalOrTreatmentInformation": "NONE",
+        "profanityOrCrudeHumor": "NONE",
+        "sexualContentGraphicAndNudity": "NONE",
+        "sexualContentOrNudity": "NONE",
+        "violenceCartoonOrFantasy": "NONE",
+        "violenceRealistic": "NONE",
+        "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+        "unrestrictedWebAccess": False,
+        "seventeenPlus": False,
+        "advertising": False,
+        "messagingAndChat": False,
+        "userGeneratedContent": False,
+        "lootBox": False,
+        "healthOrWellnessTopics": False,
+        "parentalControls": False,
+        "ageAssurance": False,
+    }
+    payload = {"data": {"type": "ageRatingDeclarations", "id": data["id"], "attributes": attrs}}
+    response = request("PATCH", f"/ageRatingDeclarations/{data['id']}", json=payload)
+    if response.status_code >= 400:
+        print("Age rating update was not accepted.")
+
+
+def update_review_detail(version_id: str) -> None:
+    response = request("GET", f"/appStoreVersions/{version_id}/appStoreReviewDetail")
+    if response.status_code == 200 and body(response).get("data"):
+        detail_id = body(response)["data"]["id"]
+        payload = {"data": {"type": "appStoreReviewDetails", "id": detail_id, "attributes": REVIEW_DETAIL}}
+        must(request("PATCH", f"/appStoreReviewDetails/{detail_id}", json=payload), "Review detail update failed.")
+        return
+
+    payload = {
+        "data": {
+            "type": "appStoreReviewDetails",
+            "attributes": REVIEW_DETAIL,
+            "relationships": {"appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}}},
+        }
+    }
+    response = request("POST", "/appStoreReviewDetails", json=payload)
+    if response.status_code not in {200, 201}:
+        must(response, "Review detail creation failed.")
+
+
 def set_export_compliance(build_id: str) -> None:
     payload = {
         "data": {
@@ -208,6 +341,37 @@ def active_submission() -> str | None:
         if state in {"READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"}:
             return submission["id"]
     return None
+
+
+def cancel_submission(submission_id: str) -> bool:
+    response = request(
+        "PATCH",
+        f"/reviewSubmissions/{submission_id}",
+        json={
+            "data": {
+                "type": "reviewSubmissions",
+                "id": submission_id,
+                "attributes": {"canceled": True},
+            }
+        },
+    )
+    if response.status_code < 400:
+        print(f"Canceled review submission {submission_id}.")
+        time.sleep(10)
+        return True
+    print(f"Could not cancel review submission {submission_id}.")
+    return False
+
+
+def cancel_blocking_submissions() -> None:
+    submissions = must(
+        request("GET", f"/apps/{APP_ID}/reviewSubmissions?limit=20"),
+        "Review submission lookup failed.",
+    ).get("data", [])
+    for submission in submissions:
+        state = submission["attributes"].get("state")
+        if state in {"UNRESOLVED_ISSUES", "READY_FOR_REVIEW"}:
+            cancel_submission(submission["id"])
 
 
 def submission_items(submission_id: str) -> list[dict[str, Any]]:
@@ -303,7 +467,13 @@ def add_submission_item(submission_id: str, version_id: str) -> str:
                     return submission_id
                 response = retry
             elif stale_result == "already_submitted":
-                if delete_existing_version_submission(version_id):
+                if cancel_submission(old_id):
+                    print("Retrying review submission item creation after canceling the old review submission.")
+                    retry = request("POST", "/reviewSubmissionItems", json=payload)
+                    if retry.status_code in {200, 201}:
+                        return submission_id
+                    response = retry
+                elif delete_existing_version_submission(version_id):
                     print("Retrying review submission item creation after deleting appStoreVersionSubmission.")
                     retry = request("POST", "/reviewSubmissionItems", json=payload)
                     if retry.status_code in {200, 201}:
@@ -380,7 +550,9 @@ def main() -> None:
     version_id = version["id"]
     print(f"Using App Store version {VERSION_STRING} ({version_id}), state: {version['attributes'].get('appStoreState')}")
     assign_build(version_id, build_id)
+    update_version_prerequisites(version_id)
     update_localization(version_id)
+    cancel_blocking_submissions()
     submission_id = create_submission()
     print(f"Using review submission {submission_id}")
     submission_id = add_submission_item(submission_id, version_id)

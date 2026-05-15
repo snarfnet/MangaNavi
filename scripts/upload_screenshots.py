@@ -12,6 +12,7 @@ from typing import Any
 
 import jwt
 import requests
+from PIL import Image, ImageOps
 
 
 KEY_ID = os.environ["ASC_KEY_ID"]
@@ -22,6 +23,7 @@ VERSION_STRING = os.environ.get("VERSION_STRING", "1.0")
 BASE_URL = "https://api.appstoreconnect.apple.com/v1"
 ROOT_DIR = Path(__file__).resolve().parents[1]
 SCREENSHOT_DIR = ROOT_DIR / "output" / "ios-screenshots"
+GENERATED_DIR = ROOT_DIR / "output" / "generated-screenshots"
 
 if not PRIVATE_KEY:
     key_path = Path(
@@ -162,6 +164,22 @@ def upload_screenshot(set_id: str, path: Path) -> None:
     print(f"Uploaded {path.name}")
 
 
+def resized_sources(sources: list[Path], device_type: str, size: tuple[int, int]) -> list[Path]:
+    if device_type == "APP_IPHONE_67":
+        return sources
+
+    GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+    resized: list[Path] = []
+    for source in sources:
+        target = GENERATED_DIR / source.name.replace("iphone-6-7", device_type.lower())
+        with Image.open(source) as image:
+            rgb = image.convert("RGB")
+            fitted = ImageOps.fit(rgb, size, method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+            fitted.save(target, "PNG", optimize=True)
+        resized.append(target)
+    return resized
+
+
 def main() -> None:
     print("=== MangaNavi screenshot upload ===")
     screenshots = sorted(SCREENSHOT_DIR.glob("*-iphone-6-7.png"))
@@ -179,10 +197,18 @@ def main() -> None:
         print("No Japanese localization found. Run submit.py once before uploading screenshots.")
         sys.exit(1)
 
-    set_id = get_or_create_screenshot_set(localization_id, "APP_IPHONE_67")
-    delete_existing_screenshots(set_id)
-    for screenshot in screenshots:
-        upload_screenshot(set_id, screenshot)
+    device_sets = {
+        "APP_IPHONE_67": (1290, 2796),
+        "APP_IPHONE_65": (1242, 2688),
+        "APP_IPHONE_55": (1242, 2208),
+    }
+    for device_type, size in device_sets.items():
+        set_screenshots = resized_sources(screenshots, device_type, size)
+        print(f"Uploading {len(set_screenshots)} screenshots for {device_type}")
+        set_id = get_or_create_screenshot_set(localization_id, device_type)
+        delete_existing_screenshots(set_id)
+        for screenshot in set_screenshots:
+            upload_screenshot(set_id, screenshot)
     print("Screenshot upload finished.")
 
 
