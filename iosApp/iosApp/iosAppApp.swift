@@ -8,9 +8,6 @@ struct MangaNaviApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(adService)
-                .task {
-                    await adService.start()
-                }
         }
     }
 }

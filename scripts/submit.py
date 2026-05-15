@@ -41,20 +41,22 @@ COPYRIGHT = "2026 Tokyo Nasu"
 
 # Keep the storefront text plain Japanese. The earlier constants are overwritten
 # here because some terminals display the old source text as mojibake.
-DESC_JA = """まとめ・よみきりは、次に読みたい漫画を探すための読み物ナビアプリです。
+DESC_JA = """MangaNaviは、次に読む漫画を探しやすくする読書ナビアプリです。
 
-注目作品、ランキング、ジャンル別の作品一覧から、気になる漫画をすばやく見つけられます。作品のメモや評価も残せるので、あとで読みたい作品の整理にも使えます。
+作品名やジャンルで検索し、気分に合う作品を絞り込めます。気になった作品は「読みたい」に保存し、読み終えた作品は「読了」として管理できます。ランキング、今日の一冊、ジャンル別の候補から、次の一冊をすばやく見つけられます。
 
 主な機能:
-- 注目作品のチェック
+- 作品検索
+- ジャンル絞り込み
 - ランキング表示
-- ジャンル別の作品探し
-- 読書リスト
+- 今日のおすすめ
+- 読みたい作品の保存
+- 読了作品の管理
 - 作品メモと評価
 
-漫画選びで迷ったとき、次の一冊を探す入口として使ってください。"""
+漫画選びで迷ったとき、読む候補を整理したいときに使ってください。"""
 
-KEYWORDS = "漫画,マンガ,おすすめ,ランキング,読書リスト,ジャンル,読み切り,まとめ,comic,manga,book"
+KEYWORDS = "漫画,マンガ,おすすめ,ランキング,読書リスト,ジャンル,検索,読了,保存,comic,manga"
 REVIEW_DETAIL = {
     "contactFirstName": "Tokyo",
     "contactLastName": "Nasu",
@@ -65,8 +67,10 @@ REVIEW_DETAIL = {
     "demoAccountPassword": "",
     "notes": (
         "No sign-in is required. Advertising remains enabled. "
-        "This build shows the App Tracking Transparency permission request on first launch before Google Mobile Ads starts. "
-        "The screenshots were updated to remove non-iOS status bar artwork."
+        "On a fresh install, the app first shows a MangaNavi privacy screen. Tap Continue, then the App Tracking Transparency system permission request appears before Google Mobile Ads starts and before any ad banner is loaded. "
+        "If tracking permission has already been decided on the device, the system dialog will not appear again unless tracking permissions are reset. "
+        "This build also adds search, genre filtering, saved manga, finished manga, daily recommendations, and random recommendations. "
+        "All screenshot sets are cleared and reuploaded, including iPad, to remove non-iOS status bar artwork."
     ),
 }
 

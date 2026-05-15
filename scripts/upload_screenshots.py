@@ -214,6 +214,7 @@ def main() -> None:
         "APP_IPHONE_67": (1290, 2796),
         "APP_IPHONE_65": (1242, 2688),
         "APP_IPHONE_55": (1242, 2208),
+        "APP_IPAD_PRO_3GEN_129": (2048, 2732),
     }
     for device_type, size in device_sets.items():
         set_screenshots = resized_sources(screenshots, device_type, size)
