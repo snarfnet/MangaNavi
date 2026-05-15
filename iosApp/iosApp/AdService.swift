@@ -10,8 +10,6 @@ enum AdPlacement {
 struct AdConfiguration {
     static let appID = "ca-app-pub-9404799280370656~8948872604"
     static let primaryBannerUnitID = "ca-app-pub-9404799280370656/2700982853"
-    static let secondaryBannerUnitID = "ca-app-pub-9404799280370656/5009627599"
-    static let tertiaryBannerUnitID = "ca-app-pub-9404799280370656/6705852641"
 
     static func bannerUnitID(for placement: AdPlacement) -> String {
         switch placement {
@@ -25,32 +23,58 @@ struct AdConfiguration {
 final class AdService: ObservableObject {
     static let shared = AdService()
 
+    @Published private(set) var didCompleteTrackingFlow = false
     @Published private(set) var isReady = false
+
     private var didStart = false
 
     private init() {}
 
-    func start() async {
-        guard !didStart else { return }
-        didStart = true
+    func prepareForFirstLaunch() {
+        guard !didCompleteTrackingFlow else { return }
 
-        await requestTrackingAuthorizationIfNeeded()
-        GADMobileAds.sharedInstance().start(completionHandler: nil)
-        isReady = true
-    }
-
-    private func requestTrackingAuthorizationIfNeeded() async {
-        guard #available(iOS 14.5, *),
-              ATTrackingManager.trackingAuthorizationStatus == .notDetermined else {
+        guard #available(iOS 14.5, *) else {
+            didCompleteTrackingFlow = true
+            startAdsIfNeeded()
             return
         }
 
-        try? await Task.sleep(nanoseconds: 350_000_000)
-        _ = await withCheckedContinuation { continuation in
-            ATTrackingManager.requestTrackingAuthorization { status in
-                continuation.resume(returning: status)
+        if ATTrackingManager.trackingAuthorizationStatus == .notDetermined {
+            return
+        }
+
+        didCompleteTrackingFlow = true
+        startAdsIfNeeded()
+    }
+
+    func requestTrackingAuthorizationFromGate() async {
+        guard #available(iOS 14.5, *) else {
+            didCompleteTrackingFlow = true
+            startAdsIfNeeded()
+            return
+        }
+
+        guard ATTrackingManager.trackingAuthorizationStatus == .notDetermined else {
+            didCompleteTrackingFlow = true
+            startAdsIfNeeded()
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            ATTrackingManager.requestTrackingAuthorization { _ in
+                continuation.resume()
             }
         }
+
+        didCompleteTrackingFlow = true
+        startAdsIfNeeded()
+    }
+
+    func startAdsIfNeeded() {
+        guard !didStart else { return }
+        didStart = true
+        GADMobileAds.sharedInstance().start(completionHandler: nil)
+        isReady = true
     }
 }
 
