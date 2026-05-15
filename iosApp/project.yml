@@ -1,4 +1,8 @@
 name: MangaNavi
+packages:
+  GoogleMobileAds:
+    url: https://github.com/googleads/swift-package-manager-google-mobile-ads
+    from: "11.0.0"
 options:
   bundleIdPrefix: com.mangaguide
   deploymentTarget:
@@ -17,6 +21,9 @@ targets:
       - path: iosApp
         excludes:
           - Info.plist
+    dependencies:
+      - package: GoogleMobileAds
+        product: GoogleMobileAds
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mangaguide.manganavi

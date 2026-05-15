@@ -124,6 +124,17 @@ def delete_existing_screenshots(set_id: str) -> None:
         print(f"Deleted old screenshot {screenshot['id']}")
 
 
+def clear_all_screenshot_sets(localization_id: str) -> None:
+    sets = must(
+        request("GET", f"/appStoreVersionLocalizations/{localization_id}/appScreenshotSets?limit=200"),
+        "Screenshot set lookup failed.",
+    ).get("data", [])
+    for item in sets:
+        display_type = item["attributes"].get("screenshotDisplayType", "unknown")
+        print(f"Clearing old screenshots for {display_type}")
+        delete_existing_screenshots(item["id"])
+
+
 def upload_screenshot(set_id: str, path: Path) -> None:
     data = path.read_bytes()
     checksum = hashlib.md5(data).hexdigest()
@@ -197,6 +208,8 @@ def main() -> None:
         print("No Japanese localization found. Run submit.py once before uploading screenshots.")
         sys.exit(1)
 
+    clear_all_screenshot_sets(localization_id)
+
     device_sets = {
         "APP_IPHONE_67": (1290, 2796),
         "APP_IPHONE_65": (1242, 2688),
@@ -206,7 +219,6 @@ def main() -> None:
         set_screenshots = resized_sources(screenshots, device_type, size)
         print(f"Uploading {len(set_screenshots)} screenshots for {device_type}")
         set_id = get_or_create_screenshot_set(localization_id, device_type)
-        delete_existing_screenshots(set_id)
         for screenshot in set_screenshots:
             upload_screenshot(set_id, screenshot)
     print("Screenshot upload finished.")

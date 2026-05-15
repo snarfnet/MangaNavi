@@ -14,59 +14,63 @@ private struct MangaNaviHomeView: View {
     private let genres = ["バトル", "ミステリー", "日常", "SF", "恋愛", "歴史"]
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            NavigationStack {
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 24) {
-                        HeroPanel(featured: picks[0]) {
-                            selectedManga = picks[0]
-                        }
+        VStack(spacing: 0) {
+            TabView(selection: $selectedTab) {
+                NavigationStack {
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 24) {
+                            HeroPanel(featured: picks[0]) {
+                                selectedManga = picks[0]
+                            }
 
-                        SectionHeader(title: "今日の注目作", action: "更新")
+                            SectionHeader(title: "今日の注目作", action: "更新")
 
-                        LazyVGrid(columns: columns, spacing: 14) {
-                            ForEach(picks) { manga in
-                                MangaCard(manga: manga)
-                                    .onTapGesture {
-                                        selectedManga = manga
-                                    }
+                            LazyVGrid(columns: columns, spacing: 14) {
+                                ForEach(picks) { manga in
+                                    MangaCard(manga: manga)
+                                        .onTapGesture {
+                                            selectedManga = manga
+                                        }
+                                }
+                            }
+
+                            SectionHeader(title: "ジャンルから探す", action: nil)
+
+                            LazyVGrid(columns: genreColumns, spacing: 10) {
+                                ForEach(genres, id: \.self) { genre in
+                                    GenreChip(title: genre)
+                                }
                             }
                         }
-
-                        SectionHeader(title: "ジャンルから探す", action: nil)
-
-                        LazyVGrid(columns: genreColumns, spacing: 10) {
-                            ForEach(genres, id: \.self) { genre in
-                                GenreChip(title: genre)
-                            }
-                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 14)
+                        .padding(.bottom, 28)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 14)
-                    .padding(.bottom, 28)
+                    .background(AppPalette.paper.ignoresSafeArea())
+                    .navigationTitle("MangaNavi")
+                    .navigationBarTitleDisplayMode(.inline)
                 }
-                .background(AppPalette.paper.ignoresSafeArea())
-                .navigationTitle("MangaNavi")
-                .navigationBarTitleDisplayMode(.inline)
-            }
-            .tabItem {
-                Label("ホーム", systemImage: "book.pages")
-            }
-            .tag(0)
-
-            RankingView(picks: picks, selectedManga: $selectedManga)
                 .tabItem {
-                    Label("ランキング", systemImage: "chart.bar.fill")
+                    Label("ホーム", systemImage: "book.pages")
                 }
-                .tag(1)
+                .tag(0)
 
-            ReadingListView(picks: picks, selectedManga: $selectedManga)
-                .tabItem {
-                    Label("リスト", systemImage: "bookmark.fill")
-                }
-                .tag(2)
+                RankingView(picks: picks, selectedManga: $selectedManga)
+                    .tabItem {
+                        Label("ランキング", systemImage: "chart.bar.fill")
+                    }
+                    .tag(1)
+
+                ReadingListView(picks: picks, selectedManga: $selectedManga)
+                    .tabItem {
+                        Label("リスト", systemImage: "bookmark.fill")
+                    }
+                    .tag(2)
+            }
+            .tint(AppPalette.ink)
+
+            AdMobBannerSlotView(placement: .homeBottom)
         }
-        .tint(AppPalette.ink)
         .sheet(item: $selectedManga) { manga in
             MangaDetailView(manga: manga)
         }

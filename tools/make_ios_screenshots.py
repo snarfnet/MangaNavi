@@ -1,7 +1,7 @@
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-ROOT = Path(r"C:\Users\Windows\MangaNavi")
+ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "output" / "ios-screenshots"
 OUT.mkdir(parents=True, exist_ok=True)
 
@@ -68,17 +68,12 @@ def base_bg():
 def phone_shell():
     img = base_bg()
     draw = ImageDraw.Draw(img)
-    rounded(draw, (70, 90, W - 70, H - 90), 78, "#111015")
-    rounded(draw, (92, 116, W - 92, H - 116), 62, "#fff4dc")
+    rounded(draw, (0, 0, W, H), 0, "#fff4dc")
     return img
 
 
 def status(draw, dark=False):
-    color = "#fff4dc" if dark else "#111015"
-    write(draw, (126, 150), "9:41", F["small"], color)
-    rounded(draw, (1010, 146, 1080, 174), 14, None, color, 3)
-    rounded(draw, (1085, 154, 1096, 166), 4, color)
-    rounded(draw, (1017, 152, 1062, 168), 9, color)
+    return
 
 
 def card(draw, box, fill="#ffffff", outline="#e6d8bd", radius=34):
@@ -99,12 +94,12 @@ def cover_tile(img, x, y, rank, title, score, color="#e6362e"):
 def home():
     img = phone_shell()
     draw = ImageDraw.Draw(img)
-    paste_round(img, cover_crop(HERO, (W - 184, 1030)), (92, 116), 62)
-    overlay = Image.new("RGBA", (W - 184, 1030), (0, 0, 0, 0))
+    paste_round(img, cover_crop(HERO, (W, 1030)), (0, 0), 0)
+    overlay = Image.new("RGBA", (W, 1030), (0, 0, 0, 0))
     od = ImageDraw.Draw(overlay)
     for i in range(1030):
         od.line((0, i, W - 184, i), fill=(0, 0, 0, int(20 + 190 * (i / 1030))))
-    img.paste(overlay, (92, 116), overlay)
+    img.paste(overlay, (0, 0), overlay)
     status(draw, True)
     write(draw, (130, 850), "MangaNavi", F["xxl"], "#ffffff")
     write(draw, (134, 965), "読むべき一冊を、ランキングで一瞬で見つける。", F["body"], "#fff4dc")
@@ -134,9 +129,9 @@ def home():
 def ranking():
     img = phone_shell()
     draw = ImageDraw.Draw(img)
-    rounded(draw, (92, 116, W - 92, 560), 62, "#111015")
-    for x in range(90, W - 90, 28):
-        draw.line((x, 116, x + 300, 560), fill="#431a1a", width=5)
+    rounded(draw, (0, 0, W, 560), 0, "#111015")
+    for x in range(0, W, 28):
+        draw.line((x, 0, x + 300, 560), fill="#431a1a", width=5)
     status(draw, True)
     write(draw, (130, 245), "MANGA RANKING", F["small"], "#ffc857")
     write(draw, (130, 310), "読者評価が強い作品", F["xl"], "#ffffff")
@@ -167,9 +162,9 @@ def ranking():
 def detail():
     img = phone_shell()
     draw = ImageDraw.Draw(img)
-    paste_round(img, cover_crop(HERO, (W - 184, 620)), (92, 116), 62)
-    overlay = Image.new("RGBA", (W - 184, 620), (0, 0, 0, 80))
-    img.paste(overlay, (92, 116), overlay)
+    paste_round(img, cover_crop(HERO, (W, 620)), (0, 0), 0)
+    overlay = Image.new("RGBA", (W, 620), (0, 0, 0, 80))
+    img.paste(overlay, (0, 0), overlay)
     status(draw, True)
     rounded(draw, (130, 210, 250, 265), 24, (255, 255, 255, 60))
     write(draw, (158, 222), "戻る", F["small"], "#ffffff")

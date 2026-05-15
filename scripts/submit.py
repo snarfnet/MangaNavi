@@ -63,7 +63,11 @@ REVIEW_DETAIL = {
     "demoAccountRequired": False,
     "demoAccountName": "",
     "demoAccountPassword": "",
-    "notes": "No sign-in is required. The app is a simple manga reading-list and recommendation guide.",
+    "notes": (
+        "No sign-in is required. Advertising remains enabled. "
+        "This build shows the App Tracking Transparency permission request on first launch before Google Mobile Ads starts. "
+        "The screenshots were updated to remove non-iOS status bar artwork."
+    ),
 }
 
 
@@ -183,7 +187,7 @@ def update_version_prerequisites(version_id: str) -> None:
         "data": {
             "type": "appStoreVersions",
             "id": version_id,
-            "attributes": {"copyright": COPYRIGHT, "usesIdfa": False},
+            "attributes": {"copyright": COPYRIGHT, "usesIdfa": True},
         }
     }
     response = request("PATCH", f"/appStoreVersions/{version_id}", json=version_payload)
@@ -294,7 +298,7 @@ def update_version_settings(version_id: str) -> None:
             "id": version_id,
             "attributes": {
                 "copyright": "2026 Tokyo Nasu",
-                "usesIdfa": False,
+                "usesIdfa": True,
                 "releaseType": "AFTER_APPROVAL",
             },
         }
