@@ -253,7 +253,6 @@ def update_age_rating(app_info_id: str) -> None:
         "violenceRealistic": "NONE",
         "violenceRealisticProlongedGraphicOrSadistic": "NONE",
         "unrestrictedWebAccess": False,
-        "seventeenPlus": False,
         "advertising": False,
         "messagingAndChat": False,
         "userGeneratedContent": False,
