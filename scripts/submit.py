@@ -67,7 +67,7 @@ DESC_JA = """MangaNaviは、次に読む漫画を探しやすくする読書ナ�
 - 読みたい作品の保存
 - 読了作品の管理
 - ランキングと今日のおすすめ
-- 18作品の候補リストと作品詳細
+- 54作品の候補リストと作品詳細
 
 漫画選びで迷った時や、読みたい候補を整理したい時に使ってください。"""
 
@@ -83,7 +83,7 @@ DESC_JA = """MangaNaviは、次に読む漫画を探しやすくする読書ナ�
 - 読みたい作品の保存
 - 読了作品の管理
 - 今日のおすすめとランダム推薦
-- 18作品の候補リストと作品詳細
+- 54作品の候補リストと作品詳細
 
 漫画選びで迷った時や、読みたい候補を整理したい時に使ってください。"""
 
@@ -99,10 +99,10 @@ REVIEW_DETAIL = {
     "demoAccountPassword": "",
     "notes": (
         "No sign-in is required. Advertising remains enabled. "
-        "On a fresh install, the app first shows the MangaNavi advertising permission screen. Tap the button labeled '続ける'. The App Tracking Transparency system permission request appears immediately after that user action and before Google Mobile Ads starts or any ad banner is loaded. "
+        "On a fresh install, the app first shows the MangaNavi advertising permission screen. Tap the button labeled '続ける'. The App Tracking Transparency system permission request appears immediately after that user action and before Google Mobile Ads starts or any ad banner is loaded. The Info.plist also sets GADDelayAppMeasurementInit to true, so Google Mobile Ads app measurement is delayed until after this ATT flow completes. "
         "If the device has already answered the ATT permission for this app, iOS will not show the system dialog again unless tracking permissions are reset. For verification, please install fresh or reset tracking permissions before launching. "
         "For Guideline 2.1(a), genre filtering is implemented as large grid buttons in the Search tab. Tapping any genre visibly selects it, updates the result count, and refreshes the manga list immediately. "
-        "For Guideline 4.2, this build includes manga search, large genre filters, saved/bookmarked manga, finished manga, daily recommendations, random recommendations, and 18 manga detail entries. The interface text has also been cleaned up in Japanese."
+        "For Guideline 4.2, this build includes manga search, large genre filters, saved/bookmarked manga, finished manga, daily recommendations, random recommendations, and 54 manga detail entries. The interface text has also been cleaned up in Japanese."
     ),
 }
 

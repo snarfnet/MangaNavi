@@ -98,7 +98,7 @@ def home() -> None:
     text(draw, (592, 402), "読みたい保存", "md", INK)
 
     y = 790
-    for i, (num, label) in enumerate([("18", "作品"), ("8", "ジャンル"), ("2", "リスト")]):
+    for i, (num, label) in enumerate([("54", "作品"), ("9", "ジャンル"), ("2", "リスト")]):
         x = 90 + i * 380
         card(draw, (x, y, x + 340, y + 160))
         text(draw, (x + 35, y + 34), num, "lg")
@@ -138,7 +138,7 @@ def search() -> None:
         rounded(draw, (x, y, x + 520, y + 96), 26, CRIMSON if selected else "#ffffff", LINE, 3)
         text(draw, (x + 45, y + 25), ("✓ " if selected else "○ ") + genre, "md", "#ffffff" if selected else INK)
 
-    text(draw, (90, 1280), "SFの2作品を表示中", "body", MUTED)
+    text(draw, (90, 1280), "SFの6作品を表示中", "body", MUTED)
     rows = [("灰色都市のナビゲーター", "8.9", "疾走"), ("銀河配送便", "8.6", "冒険")]
     for i, (title, score, mood) in enumerate(rows):
         y = 1370 + i * 360

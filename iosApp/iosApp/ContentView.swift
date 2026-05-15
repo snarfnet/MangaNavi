@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 struct ContentView: View {
@@ -841,7 +842,9 @@ private struct MangaPick: Identifiable {
     let note: String
     let colors: [Color]
 
-    static let samples: [MangaPick] = [
+    static let samples: [MangaPick] = baseSamples + generatedSamples
+
+    private static let baseSamples: [MangaPick] = [
         MangaPick(title: "夜明け前の編集部", shortTitle: "夜明け前の\n編集部", genre: "ドラマ", score: "9.2", volume: "8巻", mood: "熱量", pitch: "新人編集者と作家が一本の連載に向き合う仕事ドラマ。", note: "締切、才能、街の空気まで丁寧に描く作品。読み終えると何かを始めたくなります。", colors: [AppPalette.ink, AppPalette.crimson]),
         MangaPick(title: "灰色都市のナビゲーター", shortTitle: "灰色都市の\nナビ", genre: "SF", score: "8.9", volume: "12巻", mood: "疾走", pitch: "迷路のような未来都市で、少女が真実への道を引く。", note: "地下鉄、監視網、古い地図。読み進めるほど街の見え方が変わる硬派なSFです。", colors: [Color(red: 0.10, green: 0.12, blue: 0.16), Color(red: 0.72, green: 0.58, blue: 0.22)]),
         MangaPick(title: "ひと駅ぶんの怪談", shortTitle: "ひと駅\n怪談", genre: "ミステリー", score: "8.7", volume: "5巻", mood: "余韻", pitch: "短いのに刺さる、一話完結の駅前ミステリー。", note: "毎話ひと駅で読み切れる構成。静かに回収される伏線が気持ちいい作品です。", colors: [Color(red: 0.16, green: 0.18, blue: 0.20), Color(red: 0.12, green: 0.42, blue: 0.46)]),
@@ -861,6 +864,37 @@ private struct MangaPick: Identifiable {
         MangaPick(title: "書庫街の魔法使い", shortTitle: "書庫街の\n魔法使い", genre: "ファンタジー", score: "8.8", volume: "13巻", mood: "濃密", pitch: "本を読むほど魔法が変わる街で、少年は禁書を探す。", note: "本好きに刺さる設定が多く、巻数が進むほど関係性が深まります。", colors: [Color(red: 0.20, green: 0.12, blue: 0.28), Color(red: 0.78, green: 0.54, blue: 0.24)]),
         MangaPick(title: "潮騒ホームルーム", shortTitle: "潮騒\nホームルーム", genre: "青春", score: "8.4", volume: "6巻", mood: "爽快", pitch: "海辺の学校で、転校生とクラスの一年が始まる。", note: "人間関係の変化をゆっくり追います。夏の空気が好きな人に合います。", colors: [Color(red: 0.09, green: 0.32, blue: 0.50), Color(red: 0.38, green: 0.74, blue: 0.82)])
     ]
+
+    private static let generatedSamples: [MangaPick] = {
+        let titleHeads = ["月影", "硝子", "夕凪", "白線", "星屑", "深海", "路面", "銀糸", "遠雷", "花曇り", "群青", "灯台"]
+        let titleTails = ["ノート", "探偵団", "食堂", "郵便局", "記録室", "シアター", "観測所", "図書室", "工房", "裁判所", "クラブ", "航路"]
+        let genres = ["ドラマ", "SF", "ミステリー", "歴史", "日常", "恋愛", "青春", "ファンタジー", "サスペンス"]
+        let moods = ["静か", "疾走", "余韻", "軽快", "冒険", "緊張", "前向き", "濃密"]
+
+        return (0..<36).map { index in
+            let head = titleHeads[index % titleHeads.count]
+            let tail = titleTails[(index / titleHeads.count + index) % titleTails.count]
+            let title = "\(head)の\(tail)"
+            let genre = genres[index % genres.count]
+            let mood = moods[index % moods.count]
+            let score = String(format: "%.1f", 8.0 + Double(index % 12) / 10.0)
+            let volume = "\(3 + (index % 14))巻"
+            let firstColor = Color(red: 0.10 + Double(index % 5) * 0.05, green: 0.12 + Double(index % 4) * 0.04, blue: 0.16 + Double(index % 3) * 0.05)
+            let secondColor = Color(red: 0.50 + Double(index % 4) * 0.08, green: 0.20 + Double(index % 5) * 0.07, blue: 0.22 + Double(index % 6) * 0.06)
+
+            return MangaPick(
+                title: title,
+                shortTitle: "\(head)の\n\(tail)",
+                genre: genre,
+                score: score,
+                volume: volume,
+                mood: mood,
+                pitch: "\(mood)な読後感で、\(genre)が好きな人に向く一冊。",
+                note: "短く試し読みする候補としても、あとで読む作品として保存する候補としても使いやすい作品です。",
+                colors: [firstColor, secondColor]
+            )
+        }
+    }()
 }
 
 private enum AppPalette {
