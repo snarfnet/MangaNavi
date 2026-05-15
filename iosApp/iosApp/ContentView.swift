@@ -2,19 +2,21 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var adService: AdService
-    @AppStorage("didCompleteTrackingIntro") private var didCompleteTrackingIntro = false
+    @AppStorage("trackingIntroVersion") private var trackingIntroVersion = 0
 
     var body: some View {
-        if didCompleteTrackingIntro {
-            MangaNaviHomeView()
-                .task {
-                    await adService.start()
-                }
-        } else {
-            TrackingIntroView {
-                Task {
-                    await adService.start()
-                    didCompleteTrackingIntro = true
+        Group {
+            if trackingIntroVersion >= 2 {
+                MangaNaviHomeView()
+                    .task {
+                        await adService.start()
+                    }
+            } else {
+                TrackingIntroView {
+                    Task {
+                        await adService.start()
+                        trackingIntroVersion = 2
+                    }
                 }
             }
         }
@@ -31,15 +33,15 @@ private struct TrackingIntroView: View {
             VStack(alignment: .leading, spacing: 20) {
                 Spacer()
 
-                Image(systemName: "rectangle.stack.fill")
-                    .font(.system(size: 54, weight: .black))
+                Image(systemName: "book.pages.fill")
+                    .font(.system(size: 58, weight: .black))
                     .foregroundStyle(AppPalette.crimson)
 
                 Text("MangaNavi")
                     .font(.system(size: 42, weight: .black, design: .serif))
                     .foregroundStyle(AppPalette.ink)
 
-                Text("広告を表示しながら無料で使えます。次の画面で、広告の表示と効果測定に使うトラッキング許可を確認します。許可しなくても、検索・ランキング・読書リストはそのまま使えます。")
+                Text("広告を表示しながら無料で使える漫画ナビアプリです。次の画面で、広告表示と効果測定に使うトラッキング許可を確認します。許可しない場合も、検索・ランキング・読書リストはそのまま使えます。")
                     .font(.body.weight(.semibold))
                     .lineSpacing(5)
                     .foregroundStyle(AppPalette.ink.opacity(0.76))
@@ -47,9 +49,13 @@ private struct TrackingIntroView: View {
                 Spacer()
 
                 Button(action: action) {
-                    Label("続ける", systemImage: "arrow.right")
+                    Label("トラッキング許可を確認する", systemImage: "hand.tap.fill")
                         .primaryActionStyle()
                 }
+
+                Text("このボタンを押した直後、iOSのApp Tracking Transparency許可画面が表示されます。")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppPalette.ink.opacity(0.58))
             }
             .padding(24)
         }
@@ -69,84 +75,25 @@ private struct MangaNaviHomeView: View {
     var body: some View {
         VStack(spacing: 0) {
             TabView(selection: $selectedTab) {
-                NavigationStack {
-                    ScrollView(showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 24) {
-                            HeroPanel(featured: dailyPick) {
-                                selectedManga = dailyPick
-                            }
-
-                            HStack(spacing: 10) {
-                                MiniMetric(title: "保存", value: "\(savedSet.count)")
-                                MiniMetric(title: "読了", value: "\(finishedSet.count)")
-                                MiniMetric(title: "候補", value: "\(filteredPicks.count)")
-                            }
-
-                            TextField("作品名・ジャンル・気分で検索", text: $searchText)
-                                .textInputAutocapitalization(.never)
-                                .disableAutocorrection(true)
-                                .padding(14)
-                                .background(.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .stroke(AppPalette.ink.opacity(0.08), lineWidth: 1)
-                                )
-
-                            SectionHeader(title: "ジャンルから探す", action: selectedGenre == nil ? nil : "解除")
-                                .onTapGesture {
-                                    selectedGenre = nil
-                                }
-
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 10) {
-                                    ForEach(genres, id: \.self) { genre in
-                                        Button {
-                                            selectedGenre = selectedGenre == genre ? nil : genre
-                                        } label: {
-                                            GenreChip(title: genre, isSelected: selectedGenre == genre)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .padding(.vertical, 2)
-                            }
-
-                            SectionHeader(title: "おすすめ作品", action: "気分で選ぶ")
-                                .onTapGesture {
-                                    selectedManga = filteredPicks.randomElement() ?? dailyPick
-                                }
-
-                            LazyVGrid(columns: columns, spacing: 14) {
-                                ForEach(filteredPicks) { manga in
-                                    MangaCard(
-                                        manga: manga,
-                                        isSaved: savedSet.contains(manga.title),
-                                        isFinished: finishedSet.contains(manga.title)
-                                    )
-                                    .onTapGesture {
-                                        selectedManga = manga
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 14)
-                        .padding(.bottom, 28)
-                    }
-                    .background(AppPalette.paper.ignoresSafeArea())
-                    .navigationTitle("MangaNavi")
-                    .navigationBarTitleDisplayMode(.inline)
-                }
-                .tabItem {
-                    Label("ホーム", systemImage: "book.pages")
-                }
-                .tag(0)
-
-                RankingView(picks: picks, selectedManga: $selectedManga)
+                home
                     .tabItem {
-                        Label("ランキング", systemImage: "chart.bar.fill")
+                        Label("ホーム", systemImage: "book.pages")
                     }
-                    .tag(1)
+                    .tag(0)
+
+                SearchAndGenreView(
+                    picks: filteredPicks,
+                    allGenres: genres,
+                    searchText: $searchText,
+                    selectedGenre: $selectedGenre,
+                    selectedManga: $selectedManga,
+                    savedTitles: savedSet,
+                    finishedTitles: finishedSet
+                )
+                .tabItem {
+                    Label("探す", systemImage: "magnifyingglass")
+                }
+                .tag(1)
 
                 ReadingListView(
                     picks: picks,
@@ -154,10 +101,10 @@ private struct MangaNaviHomeView: View {
                     savedTitles: savedSet,
                     finishedTitles: finishedSet
                 )
-                    .tabItem {
-                        Label("リスト", systemImage: "bookmark.fill")
-                    }
-                    .tag(2)
+                .tabItem {
+                    Label("リスト", systemImage: "bookmark.fill")
+                }
+                .tag(2)
             }
             .tint(AppPalette.ink)
 
@@ -171,6 +118,63 @@ private struct MangaNaviHomeView: View {
                 toggleSaved: { savedMangaTitles = toggled(savedMangaTitles, title: manga.title) },
                 toggleFinished: { finishedMangaTitles = toggled(finishedMangaTitles, title: manga.title) }
             )
+        }
+    }
+
+    private var home: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    HeroPanel(featured: dailyPick) {
+                        selectedManga = dailyPick
+                    }
+
+                    HStack(spacing: 10) {
+                        MiniMetric(title: "保存", value: "\(savedSet.count)")
+                        MiniMetric(title: "読了", value: "\(finishedSet.count)")
+                        MiniMetric(title: "作品", value: "\(picks.count)")
+                    }
+
+                    SectionHeader(title: "すぐ使える機能", action: nil)
+                    VStack(spacing: 10) {
+                        HomeShortcut(title: "作品名・ジャンル・気分で検索", systemImage: "magnifyingglass") {
+                            selectedTab = 1
+                        }
+                        HomeShortcut(title: "読みたい作品を保存", systemImage: "bookmark.fill") {
+                            selectedTab = 2
+                        }
+                        HomeShortcut(title: "読了した作品を管理", systemImage: "checkmark.seal.fill") {
+                            selectedTab = 2
+                        }
+                    }
+
+                    SectionHeader(title: "今日のおすすめ", action: "気分で選ぶ")
+                        .onTapGesture {
+                            selectedManga = picks.randomElement() ?? dailyPick
+                        }
+
+                    LazyVGrid(columns: columns, spacing: 14) {
+                        ForEach(Array(picks.prefix(8))) { manga in
+                            Button {
+                                selectedManga = manga
+                            } label: {
+                                MangaCard(
+                                    manga: manga,
+                                    isSaved: savedSet.contains(manga.title),
+                                    isFinished: finishedSet.contains(manga.title)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+                .padding(.bottom, 28)
+            }
+            .background(AppPalette.paper.ignoresSafeArea())
+            .navigationTitle("MangaNavi")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
@@ -215,6 +219,79 @@ private struct MangaNaviHomeView: View {
             values.insert(title)
         }
         return values.sorted().joined(separator: "|")
+    }
+}
+
+private struct SearchAndGenreView: View {
+    let picks: [MangaPick]
+    let allGenres: [String]
+    @Binding var searchText: String
+    @Binding var selectedGenre: String?
+    @Binding var selectedManga: MangaPick?
+    let savedTitles: Set<String>
+    let finishedTitles: Set<String>
+
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: 138, maximum: 210), spacing: 10)]
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 20) {
+                    TextField("作品名・ジャンル・気分で検索", text: $searchText)
+                        .textInputAutocapitalization(.never)
+                        .disableAutocorrection(true)
+                        .padding(16)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(AppPalette.ink.opacity(0.08), lineWidth: 1)
+                        )
+
+                    HStack {
+                        SectionHeader(title: "ジャンルを選ぶ", action: selectedGenre == nil ? nil : "解除")
+                            .onTapGesture {
+                                selectedGenre = nil
+                            }
+                    }
+
+                    LazyVGrid(columns: columns, spacing: 10) {
+                        ForEach(allGenres, id: \.self) { genre in
+                            Button {
+                                selectedGenre = selectedGenre == genre ? nil : genre
+                            } label: {
+                                GenreChip(title: genre, isSelected: selectedGenre == genre)
+                            }
+                            .buttonStyle(.plain)
+                            .contentShape(Rectangle())
+                        }
+                    }
+
+                    Text(selectedGenre == nil ? "\(picks.count)作品を表示中" : "\(selectedGenre!)の\(picks.count)作品を表示中")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(AppPalette.ink.opacity(0.58))
+
+                    LazyVGrid(columns: columns, spacing: 14) {
+                        ForEach(picks) { manga in
+                            Button {
+                                selectedManga = manga
+                            } label: {
+                                MangaCard(
+                                    manga: manga,
+                                    isSaved: savedTitles.contains(manga.title),
+                                    isFinished: finishedTitles.contains(manga.title)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(20)
+            }
+            .background(AppPalette.paper.ignoresSafeArea())
+            .navigationTitle("探す")
+        }
     }
 }
 
@@ -278,47 +355,33 @@ private struct HeroPanel: View {
     }
 }
 
-private struct RankingView: View {
-    let picks: [MangaPick]
-    @Binding var selectedManga: MangaPick?
+private struct HomeShortcut: View {
+    let title: String
+    let systemImage: String
+    let action: () -> Void
 
     var body: some View {
-        NavigationStack {
-            List(Array(picks.enumerated()), id: \.element.id) { index, manga in
-                Button {
-                    selectedManga = manga
-                } label: {
-                    HStack(spacing: 14) {
-                        Text("\(index + 1)")
-                            .font(.title2.monospacedDigit().weight(.black))
-                            .frame(width: 42, height: 42)
-                            .background(index == 0 ? AppPalette.gold : AppPalette.ink.opacity(0.08))
-                            .foregroundStyle(index == 0 ? AppPalette.ink : AppPalette.ink.opacity(0.72))
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.headline.weight(.black))
+                    .frame(width: 34, height: 34)
+                    .background(AppPalette.crimson.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .foregroundStyle(AppPalette.crimson)
 
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(manga.title)
-                                .font(.headline)
-                                .foregroundStyle(AppPalette.ink)
+                Text(title)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(AppPalette.ink)
 
-                            Text(manga.genre)
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(AppPalette.crimson)
-                        }
+                Spacer()
 
-                        Spacer()
-
-                        Text(manga.score)
-                            .font(.callout.monospacedDigit().weight(.bold))
-                            .foregroundStyle(AppPalette.ink)
-                    }
-                    .padding(.vertical, 8)
-                }
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(AppPalette.ink.opacity(0.35))
             }
-            .scrollContentBackground(.hidden)
-            .background(AppPalette.paper)
-            .navigationTitle("ランキング")
+            .padding(14)
+            .background(.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
+        .buttonStyle(.plain)
     }
 }
 
@@ -332,16 +395,16 @@ private struct ReadingListView: View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    ReadingGroup(title: "保存した作品", emptyText: "作品詳細から保存するとここに並びます。") {
-                        listRows(for: picks.filter { savedTitles.contains($0.title) })
+                    ReadingGroup(title: "保存した作品") {
+                        listRows(for: picks.filter { savedTitles.contains($0.title) }, emptyText: "作品詳細から「読みたい」を押すとここに並びます")
                     }
 
-                    ReadingGroup(title: "読了した作品", emptyText: "読み終えた作品を記録できます。") {
-                        listRows(for: picks.filter { finishedTitles.contains($0.title) })
+                    ReadingGroup(title: "読了した作品") {
+                        listRows(for: picks.filter { finishedTitles.contains($0.title) }, emptyText: "読み終えた作品を記録できます")
                     }
 
-                    ReadingGroup(title: "次に読む候補", emptyText: nil) {
-                        listRows(for: picks.filter { !finishedTitles.contains($0.title) }.prefix(4).map { $0 })
+                    ReadingGroup(title: "次に読む候補") {
+                        listRows(for: picks.filter { !finishedTitles.contains($0.title) }.prefix(6).map { $0 }, emptyText: "")
                     }
                 }
                 .padding(20)
@@ -351,10 +414,10 @@ private struct ReadingListView: View {
         }
     }
 
-    private func listRows(for rows: [MangaPick]) -> some View {
+    private func listRows(for rows: [MangaPick], emptyText: String) -> some View {
         VStack(spacing: 12) {
             if rows.isEmpty {
-                EmptyListText()
+                EmptyListText(text: emptyText)
             } else {
                 ForEach(rows) { manga in
                     Button {
@@ -429,6 +492,7 @@ private struct MangaCard: View {
             }
         }
         .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .shadow(color: AppPalette.ink.opacity(0.08), radius: 10, y: 6)
     }
@@ -533,7 +597,7 @@ private struct ReadingGroup<Content: View>: View {
     let title: String
     let content: Content
 
-    init(title: String, emptyText: String? = nil, @ViewBuilder content: () -> Content) {
+    init(title: String, @ViewBuilder content: () -> Content) {
         self.title = title
         self.content = content()
     }
@@ -547,11 +611,14 @@ private struct ReadingGroup<Content: View>: View {
 }
 
 private struct EmptyListText: View {
+    let text: String
+
     var body: some View {
-        Text("まだありません")
+        Text(text)
             .font(.subheadline.weight(.bold))
             .foregroundStyle(AppPalette.ink.opacity(0.52))
-            .frame(maxWidth: .infinity, minHeight: 54)
+            .frame(maxWidth: .infinity, minHeight: 58)
+            .padding(.horizontal, 12)
             .background(.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
@@ -601,12 +668,22 @@ private struct GenreChip: View {
     var isSelected = false
 
     var body: some View {
-        Label(title, systemImage: "diamond.fill")
-            .font(.callout.weight(.bold))
-            .foregroundStyle(isSelected ? .white : AppPalette.ink)
-            .padding(.horizontal, 14)
-            .frame(minHeight: 46)
-            .background(isSelected ? AppPalette.crimson : .white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        HStack {
+            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                .font(.headline.weight(.black))
+            Text(title)
+                .font(.headline.weight(.bold))
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(isSelected ? .white : AppPalette.ink)
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 58)
+        .background(isSelected ? AppPalette.crimson : .white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isSelected ? AppPalette.crimson : AppPalette.ink.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
@@ -685,72 +762,24 @@ private struct MangaPick: Identifiable {
     let colors: [Color]
 
     static let samples: [MangaPick] = [
-        MangaPick(
-            title: "夜明けの編集部",
-            shortTitle: "夜明けの\n編集部",
-            genre: "ドラマ",
-            score: "9.2",
-            volume: "8巻",
-            mood: "熱量",
-            pitch: "仕事、才能、締切。静かな火花が走る群像劇。",
-            note: "新人編集者と崖っぷち作家が、一本の連載をめぐって街の空気まで変えていく。",
-            colors: [AppPalette.ink, AppPalette.crimson]
-        ),
-        MangaPick(
-            title: "灰色都市のナビゲーター",
-            shortTitle: "灰色都市の\nナビ",
-            genre: "SF",
-            score: "8.9",
-            volume: "12巻",
-            mood: "疾走",
-            pitch: "迷路みたいな未来都市で、少女が真実への道を引く。",
-            note: "地下鉄、監視網、古い地図。読後に街の見え方が少し変わる硬派なSF。",
-            colors: [Color(red: 0.10, green: 0.12, blue: 0.16), Color(red: 0.72, green: 0.58, blue: 0.22)]
-        ),
-        MangaPick(
-            title: "ひと駅ぶんの怪談",
-            shortTitle: "ひと駅\n怪談",
-            genre: "ミステリー",
-            score: "8.7",
-            volume: "5巻",
-            mood: "余韻",
-            pitch: "短いのに刺さる。電車で読む一話完結ミステリー。",
-            note: "毎話ひと駅で読み切れる構成。伏線が静かに回収される気持ちよさがある。",
-            colors: [Color(red: 0.16, green: 0.18, blue: 0.20), Color(red: 0.12, green: 0.42, blue: 0.46)]
-        ),
-        MangaPick(
-            title: "錆びた王冠",
-            shortTitle: "錆びた\n王冠",
-            genre: "歴史",
-            score: "9.0",
-            volume: "10巻",
-            mood: "重厚",
-            pitch: "勝者の記録に残らなかった人々を描く歴史劇。",
-            note: "派手な合戦より、決断の前夜に焦点を置くタイプ。絵の密度も高い。",
-            colors: [Color(red: 0.30, green: 0.20, blue: 0.14), AppPalette.gold]
-        ),
-        MangaPick(
-            title: "朝焼けアパートメント",
-            shortTitle: "朝焼け\nアパート",
-            genre: "日常",
-            score: "8.5",
-            volume: "6巻",
-            mood: "静か",
-            pitch: "何も起きない日の奥にある、ちゃんとしたドラマ。",
-            note: "住人それぞれの小さな変化を丁寧に描く。休みの日の午前中に合う作品。",
-            colors: [Color(red: 0.71, green: 0.43, blue: 0.32), Color(red: 0.93, green: 0.78, blue: 0.55)]
-        ),
-        MangaPick(
-            title: "黒線のラブレター",
-            shortTitle: "黒線の\n手紙",
-            genre: "恋愛",
-            score: "8.8",
-            volume: "7巻",
-            mood: "切実",
-            pitch: "言えなかった言葉が、一本の線で届いてしまう。",
-            note: "甘さより痛みが残る恋愛もの。表情の描き分けがうまく、ページを戻したくなる。",
-            colors: [Color(red: 0.18, green: 0.13, blue: 0.18), Color(red: 0.67, green: 0.19, blue: 0.28)]
-        )
+        MangaPick(title: "夜明けの編集部", shortTitle: "夜明けの\n編集部", genre: "ドラマ", score: "9.2", volume: "8巻", mood: "熱量", pitch: "新人編集者と作家が一本の連載に向き合う仕事ドラマ。", note: "締切、才能、街の空気まで丁寧に描く作品。読後に何かを始めたくなります。", colors: [AppPalette.ink, AppPalette.crimson]),
+        MangaPick(title: "灰色都市のナビゲーター", shortTitle: "灰色都市の\nナビ", genre: "SF", score: "8.9", volume: "12巻", mood: "疾走", pitch: "迷路のような未来都市で、少女が真実への道を引く。", note: "地下鉄、監視網、古い地図。読み進めるほど街の見え方が変わる硬派なSFです。", colors: [Color(red: 0.10, green: 0.12, blue: 0.16), Color(red: 0.72, green: 0.58, blue: 0.22)]),
+        MangaPick(title: "ひと駅ぶんの怪談", shortTitle: "ひと駅\n怪談", genre: "ミステリー", score: "8.7", volume: "5巻", mood: "余韻", pitch: "短いのに刺さる、一話完結の駅前ミステリー。", note: "毎話ひと駅で読み切れる構成。静かに回収される伏線が気持ちいい作品です。", colors: [Color(red: 0.16, green: 0.18, blue: 0.20), Color(red: 0.12, green: 0.42, blue: 0.46)]),
+        MangaPick(title: "鉄冠の王女", shortTitle: "鉄冠の\n王女", genre: "歴史", score: "9.0", volume: "10巻", mood: "重厚", pitch: "勝者の記録に残らなかった人々を描く歴史劇。", note: "派手な合戦より決断の前夜に焦点を置くタイプ。絵の密度も高いです。", colors: [Color(red: 0.30, green: 0.20, blue: 0.14), AppPalette.gold]),
+        MangaPick(title: "朝焼けアパートメント", shortTitle: "朝焼け\nアパート", genre: "日常", score: "8.5", volume: "6巻", mood: "静か", pitch: "何も起きない日の奥にある、ちゃんとしたドラマ。", note: "住人それぞれの小さな変化を丁寧に描きます。休みの日の午前中に合う作品です。", colors: [Color(red: 0.71, green: 0.43, blue: 0.32), Color(red: 0.93, green: 0.78, blue: 0.55)]),
+        MangaPick(title: "黒線のラブレター", shortTitle: "黒線の\n手紙", genre: "恋愛", score: "8.8", volume: "7巻", mood: "切ない", pitch: "言えなかった言葉が、一本の線で届いてしまう。", note: "甘さより痛みが残る恋愛もの。表情の描き分けがうまく、ページを戻したくなります。", colors: [Color(red: 0.18, green: 0.13, blue: 0.18), Color(red: 0.67, green: 0.19, blue: 0.28)]),
+        MangaPick(title: "屋上の天文部", shortTitle: "屋上の\n天文部", genre: "青春", score: "8.6", volume: "4巻", mood: "爽快", pitch: "星を見るだけだった部活が、学校を少し変えていく。", note: "軽い会話と成長のバランスがよく、短めで読みやすい青春群像劇です。", colors: [Color(red: 0.08, green: 0.16, blue: 0.28), Color(red: 0.35, green: 0.58, blue: 0.90)]),
+        MangaPick(title: "路地裏ベーカリー事件簿", shortTitle: "路地裏\n事件簿", genre: "ミステリー", score: "8.4", volume: "9巻", mood: "軽快", pitch: "パン屋の店主が、近所の小さな謎をほどいていく。", note: "重すぎない謎解きと食べ物描写が魅力。寝る前に一話だけ読みたい時に向きます。", colors: [Color(red: 0.52, green: 0.28, blue: 0.16), Color(red: 0.93, green: 0.72, blue: 0.38)]),
+        MangaPick(title: "水晶塔の記録係", shortTitle: "水晶塔の\n記録係", genre: "ファンタジー", score: "9.1", volume: "14巻", mood: "冒険", pitch: "失われた記録を追う旅が、王国の秘密につながる。", note: "世界設定が厚く、旅の目的が少しずつ変わっていく長編ファンタジーです。", colors: [Color(red: 0.12, green: 0.22, blue: 0.34), Color(red: 0.46, green: 0.73, blue: 0.84)]),
+        MangaPick(title: "雨音キッチン", shortTitle: "雨音\nキッチン", genre: "日常", score: "8.3", volume: "3巻", mood: "やさしい", pitch: "料理と会話で、登場人物の心が少しほどける。", note: "大きな事件はありません。疲れた日に開くと、ちょうどいい温度で迎えてくれます。", colors: [Color(red: 0.23, green: 0.36, blue: 0.34), Color(red: 0.75, green: 0.82, blue: 0.72)]),
+        MangaPick(title: "銀河配送便", shortTitle: "銀河\n配送便", genre: "SF", score: "8.6", volume: "11巻", mood: "冒険", pitch: "荷物を届けるだけの仕事が、星々の問題をつなぐ。", note: "一話完結の気持ちよさと大きな物語の引きが両方あります。", colors: [Color(red: 0.08, green: 0.09, blue: 0.20), Color(red: 0.75, green: 0.42, blue: 0.88)]),
+        MangaPick(title: "坂道の写真館", shortTitle: "坂道の\n写真館", genre: "ドラマ", score: "8.5", volume: "6巻", mood: "余韻", pitch: "古い写真館に持ち込まれる一枚から人生をたどる。", note: "派手さはないのに忘れにくい短編連作。人物の距離感が丁寧です。", colors: [Color(red: 0.24, green: 0.22, blue: 0.20), Color(red: 0.78, green: 0.60, blue: 0.42)]),
+        MangaPick(title: "剣と喫茶の午後", shortTitle: "剣と喫茶の\n午後", genre: "ファンタジー", score: "8.2", volume: "5巻", mood: "軽快", pitch: "勇者をやめた店主の喫茶店に、厄介ごとが集まる。", note: "バトルより会話が楽しいタイプ。息抜きで読めるファンタジーです。", colors: [Color(red: 0.33, green: 0.23, blue: 0.14), Color(red: 0.81, green: 0.50, blue: 0.27)]),
+        MangaPick(title: "透明な裁判", shortTitle: "透明な\n裁判", genre: "サスペンス", score: "8.9", volume: "8巻", mood: "緊張", pitch: "証拠がすべて公開される社会で、嘘はどこに隠れるのか。", note: "会話の圧が強い法廷サスペンス。読者の予想を静かに裏切ります。", colors: [Color(red: 0.09, green: 0.10, blue: 0.11), Color(red: 0.52, green: 0.55, blue: 0.58)]),
+        MangaPick(title: "放課後リペア部", shortTitle: "放課後\nリペア部", genre: "青春", score: "8.1", volume: "4巻", mood: "前向き", pitch: "壊れた物を直す部活が、持ち主の記憶まで修理する。", note: "小道具の使い方がうまく、各話の読後感が明るい作品です。", colors: [Color(red: 0.16, green: 0.42, blue: 0.38), Color(red: 0.92, green: 0.68, blue: 0.34)]),
+        MangaPick(title: "赤い傘の探偵", shortTitle: "赤い傘の\n探偵", genre: "サスペンス", score: "8.7", volume: "7巻", mood: "緊張", pitch: "雨の日だけ現れる探偵が、消えた人の足取りを追う。", note: "画面の湿度が高く、事件の余白まで楽しめます。", colors: [Color(red: 0.11, green: 0.12, blue: 0.16), Color(red: 0.72, green: 0.07, blue: 0.10)]),
+        MangaPick(title: "書庫街の魔法使い", shortTitle: "書庫街の\n魔法使い", genre: "ファンタジー", score: "8.8", volume: "13巻", mood: "濃密", pitch: "本を読むほど魔法が変わる街で、少年は禁書を探す。", note: "本好きに刺さる設定が多く、巻数が進むほど関係性が深まります。", colors: [Color(red: 0.20, green: 0.12, blue: 0.28), Color(red: 0.78, green: 0.54, blue: 0.24)]),
+        MangaPick(title: "潮騒ホームルーム", shortTitle: "潮騒\nホームルーム", genre: "青春", score: "8.4", volume: "6巻", mood: "爽快", pitch: "海辺の学校で、転校生とクラスの一年が始まる。", note: "人間関係の変化をゆっくり追います。夏の空気が好きな人に合います。", colors: [Color(red: 0.09, green: 0.32, blue: 0.50), Color(red: 0.38, green: 0.74, blue: 0.82)])
     ]
 }
 

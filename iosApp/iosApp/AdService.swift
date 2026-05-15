@@ -45,6 +45,7 @@ final class AdService: ObservableObject {
             return
         }
 
+        try? await Task.sleep(nanoseconds: 350_000_000)
         _ = await withCheckedContinuation { continuation in
             ATTrackingManager.requestTrackingAuthorization { status in
                 continuation.resume(returning: status)

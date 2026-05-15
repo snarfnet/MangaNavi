@@ -57,6 +57,22 @@ DESC_JA = """MangaNaviは、次に読む漫画を探しやすくする読書ナ�
 漫画選びで迷ったとき、読む候補を整理したいときに使ってください。"""
 
 KEYWORDS = "漫画,マンガ,おすすめ,ランキング,読書リスト,ジャンル,検索,読了,保存,comic,manga"
+DESC_JA = """MangaNaviは、次に読む漫画を探しやすくする読書ナビアプリです。
+
+作品名、ジャンル、気分で検索し、気になる作品をすぐ絞り込めます。作品詳細から「読みたい」に保存でき、読み終えた作品は「読了」として管理できます。ランキング、今日の一冊、ジャンル別の候補から、次の一冊を見つけやすくしました。
+
+主な機能:
+- 作品名、ジャンル、気分による検索
+- 押しやすいジャンルボタンでの絞り込み
+- 読みたい作品の保存
+- 読了作品の管理
+- ランキングと今日のおすすめ
+- 18作品の候補リストと作品詳細
+
+漫画選びで迷った時や、読みたい候補を整理したい時に使ってください。"""
+
+KEYWORDS = "漫画,マンガ,おすすめ,ランキング,読書リスト,ジャンル,検索,読了,保存,ブックマーク,comic,manga"
+
 REVIEW_DETAIL = {
     "contactFirstName": "Tokyo",
     "contactLastName": "Nasu",
@@ -67,10 +83,10 @@ REVIEW_DETAIL = {
     "demoAccountPassword": "",
     "notes": (
         "No sign-in is required. Advertising remains enabled. "
-        "On a fresh install, the app first shows a MangaNavi privacy screen. Tap Continue, then the App Tracking Transparency system permission request appears before Google Mobile Ads starts and before any ad banner is loaded. "
-        "If tracking permission has already been decided on the device, the system dialog will not appear again unless tracking permissions are reset. "
-        "This build also adds search, genre filtering, saved manga, finished manga, daily recommendations, and random recommendations. "
-        "All screenshot sets are cleared and reuploaded, including iPad, to remove non-iOS status bar artwork."
+        "This build intentionally shows the MangaNavi privacy screen again after updating from earlier builds. Tap the button labeled 'トラッキング許可を確認する'. The App Tracking Transparency system permission request appears immediately after that user action and before Google Mobile Ads starts or any ad banner is loaded. "
+        "If the device has already answered the ATT permission for this app, iOS will not show the system dialog again unless tracking permissions are reset. For verification, please install fresh or reset tracking permissions before launching. "
+        "For Guideline 2.1(a), genre filtering was changed from small horizontal chips to large grid buttons. Tapping a genre visibly selects it, updates the result count, and refreshes the manga list. "
+        "For Guideline 4.2, this build includes manga search, large genre filters, saved/bookmarked manga, finished manga, daily recommendations, random recommendations, and 18 manga detail entries."
     ),
 }
 

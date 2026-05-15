@@ -34,7 +34,7 @@
         <true/>
     </dict>
     <key>NSUserTrackingUsageDescription</key>
-    <string>広告の表示と効果測定のために使用します。許可しなくてもアプリはそのまま使えます。</string>
+    <string>広告の表示と効果測定のために使用します。許可しない場合も、アプリの検索、ランキング、読書リストはそのまま使えます。</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>
