@@ -139,7 +139,7 @@ def wait_until_valid(build_id: str) -> None:
 
 
 def current_version() -> dict[str, Any]:
-    states = "PREPARE_FOR_SUBMISSION,DEVELOPER_REJECTED,REJECTED,READY_FOR_REVIEW"
+    states = "PREPARE_FOR_SUBMISSION,DEVELOPER_REJECTED,REJECTED,READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW"
     path = f"/apps/{APP_ID}/appStoreVersions?limit=10&filter[platform]=IOS&filter[appStoreState]={states}"
     versions = must(request("GET", path), "Version lookup failed.").get("data", [])
     for version in versions:
@@ -285,6 +285,22 @@ def update_review_detail(version_id: str) -> None:
     response = request("POST", "/appStoreReviewDetails", json=payload)
     if response.status_code not in {200, 201}:
         must(response, "Review detail creation failed.")
+
+
+def update_version_settings(version_id: str) -> None:
+    payload = {
+        "data": {
+            "type": "appStoreVersions",
+            "id": version_id,
+            "attributes": {
+                "copyright": "2026 Tokyo Nasu",
+                "usesIdfa": False,
+                "releaseType": "AFTER_APPROVAL",
+            },
+        }
+    }
+    response = request("PATCH", f"/appStoreVersions/{version_id}", json=payload)
+    must(response, "Version settings update failed.")
 
 
 def set_export_compliance(build_id: str) -> None:
@@ -547,7 +563,13 @@ def main() -> None:
     set_export_compliance(build_id)
     version = current_version()
     version_id = version["id"]
-    print(f"Using App Store version {VERSION_STRING} ({version_id}), state: {version['attributes'].get('appStoreState')}")
+    version_status = version["attributes"].get("appStoreState")
+    print(f"Using App Store version {VERSION_STRING} ({version_id}), state: {version_status}")
+    if version_status in {"WAITING_FOR_REVIEW", "IN_REVIEW"}:
+        print("Already submitted for App Store review.")
+        return
+
+    update_version_settings(version_id)
     assign_build(version_id, build_id)
     update_version_prerequisites(version_id)
     update_localization(version_id)
